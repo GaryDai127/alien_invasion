@@ -34,3 +34,8 @@ class Ship:
 
         # 根据属性 x 更新 rect 对象
         self.rect.x = self.x
+
+    def center_ship(self):
+        """将飞船放在屏幕底部中央"""
+        self.rect.midbottom = self.screen_rect.midbottom
+        self.x = float(self.rect.x)

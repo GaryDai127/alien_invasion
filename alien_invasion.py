@@ -1,9 +1,12 @@
 import sys
+from time import sleep
+
 import pygame
 from settings import Settings
 from ship import Ship
 from bullet import Bullet
 from alien import Alien
+from game_stats import GameStats
 
 class AlienInvasion:
     """管理游戏资源和行为的类"""
@@ -12,6 +15,10 @@ class AlienInvasion:
         pygame.init()
         self.clock = pygame.time.Clock()
         self.settings = Settings()
+
+        self.stats = GameStats(self)
+
+        self.game_active = True
 
         # self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         # self.settings.screen_width = self.screen.get_rect().width
@@ -31,9 +38,13 @@ class AlienInvasion:
         """开始游戏的主循环"""
         while True:
             self._check_events()
-            self.ship.update()
-            self._update_bullets()
-            self._update_aliens()
+
+            if self.game_active:
+                self._update_bullets()
+                self._update_aliens()
+                # print(len(self.bullets))
+                self._update_screen()
+
             # print(len(self.bullets))
             self._update_screen()
 
@@ -86,7 +97,11 @@ class AlienInvasion:
         self.aliens.update()
         # 检测外星人与飞船的碰撞
         if pygame.sprite.spritecollideany(self.ship, self.aliens):
-            print("Ship hit!!!")
+            # print("Ship hit!!!")
+            self._ship_hit()
+        
+        # 检查是否有外星人到达了屏幕下边缘
+        self._check_aliens_bottom()
 
     def _create_fleet(self):
         """创建一个外星舰队"""
@@ -103,6 +118,18 @@ class AlienInvasion:
             # 添加一行后，重置 x 且更新 y
             current_x = alien_width
             current_y += 2 * alien_height
+
+    def _ship_hit(self):
+        """响应飞船和外星人的碰撞"""
+        if self.stats.ship_left > 0:
+            self.stats.ship_left -= 1
+            self.bullets.empty()
+            self.aliens.empty()
+            self._create_fleet()
+            self.ship.center_ship()
+            sleep(1)
+        else:
+            self.game_active = False
     
     def _create_alien(self, x_position, y_position):
         """创建一个外星人，并将其放在当前行中"""
@@ -123,6 +150,13 @@ class AlienInvasion:
             # 删除现有的所有子弹，并创建一个新的外星舰队
             self.bullets.empty()
             self._create_fleet()
+
+    def _check_aliens_bottom(self):
+        """检查是否有外星人到达了屏幕的下边缘"""
+        for alien in self.aliens.sprites():
+            if alien.rect.bottom >= self.settings.screen_height:
+                self._ship_hit()
+                break
 
     def _update_screen(self):
         """更新屏幕上的图像，并切换到新屏幕"""
